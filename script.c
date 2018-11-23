@@ -3321,6 +3321,7 @@ PAL_RunTriggerScript(
          if (gConfig.pszMsgFile)
          {
             int idx = 0, iMsg;
+            int isTitle = 0;
             while ((iMsg = PAL_GetMsgNum(pScript->rgwOperand[0], idx++)) >= 0)
 			{
                if (iMsg == 0)
@@ -3333,9 +3334,9 @@ PAL_RunTriggerScript(
                   VIDEO_UpdateScreen(NULL);
                }
 			   else
-                  PAL_ShowDialogText(PAL_GetMsg(iMsg));
+                  isTitle = PAL_ShowDialogText(PAL_GetMsg(iMsg));
             }
-            if( gpGlobals->g.lprgScriptEntry[wScriptEntry+1].wOperation == 0xFFFF && gpGlobals->g.lprgScriptEntry[wScriptEntry+1].rgwOperand[0] != pScript->rgwOperand[0] + 1)
+            if( gpGlobals->g.lprgScriptEntry[wScriptEntry+1].wOperation == 0xFFFF && (gpGlobals->g.lprgScriptEntry[wScriptEntry+1].rgwOperand[0] != pScript->rgwOperand[0] + 1 || isTitle == 1) )
 			   wScriptEntry++;
             else
             while (gpGlobals->g.lprgScriptEntry[wScriptEntry].wOperation == 0xFFFF

@@ -1477,7 +1477,7 @@ TEXT_DisplayText(
    return x;
 }
 
-VOID
+int
 PAL_ShowDialogText(
    LPCWSTR      lpszText
 )
@@ -1492,12 +1492,15 @@ PAL_ShowDialogText(
 
   Return value:
 
-    None.
+    0 = normal text. 
+    1 = message title( like name of character ).
+	
 
 --*/
 {
    SDL_Rect        rect;
    int             x, y;
+   int             flag = 0;
 
    PAL_ClearKeyState();
    g_TextLib.bIcon = 0;
@@ -1588,6 +1591,7 @@ PAL_ShowDialogText(
          // name of character
          //
          PAL_DrawText(lpszText, g_TextLib.posDialogTitle, FONT_COLOR_CYAN_ALT, TRUE, TRUE, FALSE);
+         flag = 1;
       }
       else
       {
@@ -1611,6 +1615,7 @@ PAL_ShowDialogText(
          g_TextLib.nCurrentDialogLine++;
       }
    }
+   return flag;
 }
 
 VOID

@@ -228,10 +228,19 @@ def main():
 
     print "Now Processing. Please wait..."
     
+    last_index = 0
+    group_lines = 0
+
     for i in range(0, len(script_bytes) / 8):
         op, w1, w2, w3 = struct.unpack('<HHHH', script_bytes[i * 8 : (i + 1) * 8])
         if op == 0xFFFF:
-            if is_msg_group == 1 and last_index + 1 != w1:
+            msg_begin, msg_end = struct.unpack("<II",index_bytes[last_index * 4 : (last_index + 2) * 4])
+            msg = msg_bytes[msg_begin : msg_end].decode(options.encoding, 'replace').encode('utf-8')
+
+            def is_title(group_lines, msg):
+                return group_lines == 1 and (msg[-3:] == u'\uff1a'.encode('utf-8') or msg[-3:] == u'\u2236'.encode('utf-8') or msg[-1:] == ':')
+
+            if is_msg_group == 1 and (last_index + 1 != w1 or is_title(group_lines, msg)):
                 is_msg_group = 0
                 temp = "%s %d\n\n" % ('[END MESSAGE]', last_index)
                 message += temp
@@ -240,15 +249,18 @@ def main():
             if is_msg_group == 0:
                 is_msg_group = 1
                 message = "%s %d\n" % ('[BEGIN MESSAGE]', w1)
+                group_lines = 0
                 if options.comment: comment = "# Original message: %d\n" % w1
 
             last_index = w1
             msg_count += 1
             msg_begin, msg_end = struct.unpack("<II",index_bytes[w1 * 4 : (w1 + 2) * 4])
+            msg = msg_bytes[msg_begin : msg_end].decode(options.encoding, 'replace').encode('utf-8')
 
             try:
-                temp = "%s\n" % (msg_bytes[msg_begin : msg_end].decode(options.encoding, 'replace').encode('utf-8'))
+                temp = "%s\n" % (msg)
                 message += temp
+                group_lines = group_lines + 1
                 if options.comment: comment += "# " + temp
             except:
                 traceback.print_exc()
