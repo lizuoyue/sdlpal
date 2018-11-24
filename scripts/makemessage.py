@@ -8,6 +8,7 @@ import traceback
 import struct
 
 def main():
+    global is_msg_group, temp, message, output
 
     parser = argparse.ArgumentParser(description = 'Generate a translatable language file that can be used by SDLPAL.')
     parser.add_argument('gamepath', help = 'Game path where SSS.MKF & M.MSG & WORD.DAT are located.')
@@ -230,6 +231,15 @@ def main():
     
     last_index = 0
     group_lines = 0
+    title_location = "upper"
+
+    def close_block():
+        global is_msg_group, temp, message, output
+        if is_msg_group == 1:
+            is_msg_group = 0
+            temp = "%s %d\n\n" % ('[END MESSAGE]', last_index)
+            message += temp
+            output += comment + message
 
     for i in range(0, len(script_bytes) / 8):
         op, w1, w2, w3 = struct.unpack('<HHHH', script_bytes[i * 8 : (i + 1) * 8])
@@ -238,13 +248,10 @@ def main():
             msg = msg_bytes[msg_begin : msg_end].decode(options.encoding, 'replace').encode('utf-8')
 
             def is_title(group_lines, msg):
-                return group_lines == 1 and (msg[-3:] == u'\uff1a'.encode('utf-8') or msg[-3:] == u'\u2236'.encode('utf-8') or msg[-1:] == ':')
+                return group_lines == 1 and title_location != "center" and (msg[-3:] == u'\uff1a'.encode('utf-8') or msg[-3:] == u'\u2236'.encode('utf-8') or msg[-1:] == ':')
 
-            if is_msg_group == 1 and (last_index + 1 != w1 or is_title(group_lines, msg)):
-                is_msg_group = 0
-                temp = "%s %d\n\n" % ('[END MESSAGE]', last_index)
-                message += temp
-                output += comment + message
+            if last_index + 1 != w1 or is_title(group_lines, msg):
+                close_block()
 
             if is_msg_group == 0:
                 is_msg_group = 1
@@ -260,7 +267,7 @@ def main():
             try:
                 temp = "%s\n" % (msg)
                 message += temp
-                group_lines = group_lines + 1
+                group_lines += 1
                 if options.comment: comment += "# " + temp
             except:
                 traceback.print_exc()
@@ -272,12 +279,20 @@ def main():
                 message += temp
                 if options.comment: comment += "# " + temp
 
+        elif op == 0x003B:
+            title_location = "center"
+            close_block()
+
+        elif op == 0x003C:
+            title_location = "upper"
+            close_block()
+
+        elif op == 0x003D:
+            title_location = "lower"
+            close_block()
+
         else:
-            if is_msg_group == 1:
-                is_msg_group = 0
-                temp = "%s %d\n\n" % ('[END MESSAGE]', last_index)
-                message += temp
-                output += comment + message
+            close_block()
 
     try:
         with open(options.outputfile, "wt") as f:
